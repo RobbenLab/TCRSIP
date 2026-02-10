@@ -1,0 +1,7 @@
+&general
+startframe=0, endframe=10000, interval=10, forcefields="leaprc.protein.ff14SB"
+/
+
+&gb
+igb=5, saltcon=0.150,
+/

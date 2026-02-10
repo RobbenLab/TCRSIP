@@ -1,0 +1,8 @@
+; Constraints
+constraints              = h-bonds      ; Constrain all bonds with hydrogen
+constraint_algorithm     = lincs        ; Linear Constraint Solver
+lincs_iter               = 1            ; Accuracy of LINCS
+lincs_order              = 4            ; Also accuracy of LINCS
+
+; Time step
+dt                       = 0.002        ; 2 fs time step (required for constrained H)
