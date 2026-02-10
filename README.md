@@ -27,6 +27,9 @@ conda install -c conda-forge pymol-open-source
 And install PyRosetta from website (requires license): 
 https://www.pyrosetta.org/downloads
 
+And install gromacs to /usr/local/ as specificied in the instructions:
+https://manual.gromacs.org/current/install-guide/index.html 
+
 ## Running Processing
 
 To run the processing pipeline, use the run.sh command from the main directory and point it towards a directory containing structures in the required format.
