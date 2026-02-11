@@ -3,7 +3,7 @@ TCRSIP is a tool built upon AlphaFold2 based structural inference to predict TCR
 
 ***Colab Notebook under construction***
 
-The tool requires sequence information for the full length or truncated $\alpha$ $\beta$TCR, the peptide sequence (valid amino acid only), and the full-length or truncated MHC molecule (Class 1 or 2). Sequences must include the variable region of both chains of the TCR and the interacting region of the MHC (Will not accept B2M). The model has only been validated on human TCR and not on gamma delta TCR or CD1 molecules. Putative TCR-pMHC can be run in batches and it is recommended to provide a google drive folder to save intermediate datasteps as each sample can take up to 20 min to run. 
+The tool requires sequence information for the full length or truncated alpha beta TCR, the peptide sequence (valid amino acid only), and the full-length or truncated MHC molecule (Class 1 or 2). Sequences must include the variable region of both chains of the TCR and the interacting region of the MHC (Will not accept B2M). The model has only been validated on human TCR and not on gamma delta TCR or CD1 molecules. Putative TCR-pMHC can be run in batches and it is recommended to provide a google drive folder to save intermediate datasteps as each sample can take up to 20 min to run. 
 
 The code hosted in this repository can be run to process and extract structural features in TCR-pMHC structures. Code to reproduce specific analyses from manuscript or simulation runs can also be found in the ./scripts directory.
 
