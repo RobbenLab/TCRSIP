@@ -1,10 +1,10 @@
 # TCRSIP
 TCRSIP is a tool built upon AlphaFold2 based structural inference to predict TCR-pMHC specificity from inferred structures. The end-to-end model is available through a google colab notebook based webserver instance to be rapidly deployable by researchers. 
 
-| Syntax | Description |
-| :--- | :--- |
-| Header | Title |
-| Paragraph | Text |
+| | | Date Published | Status
+| :--- | :--- | :--- | :--- |
+| TCRSIP v1.0 | [link](https://colab.research.google.com/drive/1L8cF_c1xyjnIfIzjC_8hQLdj0JQe27vr?usp=sharing) | 3-29-26 | Running |
+
 
 The tool requires sequence information for the full length or truncated alpha beta TCR, the peptide sequence (valid amino acid only), and the full-length or truncated MHC molecule (Class 1 or 2). Sequences must include the variable region of both chains of the TCR and the interacting region of the MHC (Will not accept B2M). The model has only been validated on human TCR and not on gamma delta TCR or CD1 molecules. Putative TCR-pMHC can be run in batches and it is recommended to provide a google drive folder to save intermediate datasteps as each sample can take up to 20 min to run. 
 
