@@ -2,7 +2,7 @@
 TCRSIP is a tool built upon AlphaFold2 based structural inference to predict TCR-pMHC specificity from inferred structures. The end-to-end model is available through a google colab notebook based webserver instance to be rapidly deployable by researchers. 
 
 | | | Date Published | Change list | Status
-| :--- | :--- | :--- | :--- |
+| :--- | :--- | :--- | :--- | :--- |
 | TCRSIP v1.2 | [link](https://colab.research.google.com/drive/1pQ95DXi0mVWrrmYC9HviP0dFkgwWS6gF?usp=sharing) | 5-26-26 | Added interactive dashboard, ranking of alphafold outputs, redid the outputs, added structural evaluations | Running |
 | TCRSIP v1.1 | [link](https://colab.research.google.com/drive/1L8cF_c1xyjnIfIzjC_8hQLdj0JQe27vr?usp=sharing) | 3-29-26 | | Running |
 
