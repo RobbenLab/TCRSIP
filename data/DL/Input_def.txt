@@ -1,0 +1,161 @@
+#A file describing the input text definition
+#
+# Channel definitions for the 2D TCR-pMHC input maps built by src/build_inputs.py.
+# This file is documentation only - no script reads it. The definitions it describes live
+# in src/build_inputs.py: CHANNELS (channel list and order) and TRIM (the @ trimming
+# settings), and in src/tcr_dataset.py: CANVAS (the @ canvas settings). Keep them in sync
+# when changing either side.
+#
+# Every channel is an L x L map over residue pairs (i, j), where residues are ordered
+# MHCa, MHCb, Peptide, TCRa, TCRb (chain IDs A, B, C, D, E) to match the JSON sequences.
+# Each complex is first trimmed (rules below); maps are stored unpadded (L = trimmed length,
+# ~410) as float16 in physical units. Centering, padding and per-channel normalization
+# happen at load time (src/tcr_dataset.py).
+# Symmetry: sym = M[i,j] == M[j,i], anti = M[i,j] == -M[j,i], asym = directional.
+#
+# Lines starting with @ are settings: @name value [value ...] (= TRIM / CANVAS entries)
+# Channel lines: index  name  group  symmetry  description
+# Groups (used for hold-out experiments): sequence, position, structure, physics
+
+######## Trimming rules ########
+# Goal: keep the parts of the complex that form the interface (MHC peptide-binding platform
+# and the full TCR variable domains with all CDRs), and trim every structure to the same
+# domain boundaries so chain length does not encode the data source. Without trimming, Test
+# structures carry signal peptides (24 residues on MHCa, ~20 on each TCR chain), full MHC
+# alpha3/TM and TCR constant domains while PDB structures do not, so padding alone would
+# reveal the source. The JSON Region offsets are not used for trimming: they ignore the
+# signal peptides and many CDR3 ranges are wrong.
+#
+# MHC class I (MHCa): keep the alpha1 + alpha2 domains (both helices and the beta-sheet
+#   floor), drop alpha3 / transmembrane / cytoplasmic (and any signal peptide).
+#   Start anchor: motif H[ST][LM]RY (HLA ...GSHSMRY, H = residue 3) -> chain start = H - 2,
+#   i.e. HLA residue 1. Missing motif -> start at residue 0 and flag no_mhc1_motif.
+#   End: keep @mhc1_keep residues from the start (HLA 1-180; alpha3 begins at ~182).
+@mhc1_keep          180
+#   Helix regions for the pos_region channels, as [start, end) offsets from HLA residue 1:
+@mhc1_helix_a       49 83
+@mhc1_helix_b       138 175
+#
+# MHC class II (MHCa alpha1, MHCb beta1): the dataset already contains only the
+#   peptide-binding domains (78-95 residues, no signal peptides), so both chains are kept
+#   whole and the JSON Region helix offsets (MHCha on MHCa, MHChb on MHCb) are used.
+#   Chains longer than @mhc2_max_len are flagged mhc2_long (alpha2/beta2 domain present?).
+@mhc2_max_len       100
+#
+# Peptide: kept whole. Complexes with no peptide or no MHC class (CD1/MR1-type complexes
+#   presenting lipids/metabolites) are skipped.
+#
+# TCR alpha/beta: keep the variable domain (IMGT 1-128) including CDR1, CDR2, CDR3 and the
+#   J region; drop the signal peptide and the constant domain.
+#   Start anchor: first Cys followed 10-18 residues later by W[YF] (conserved Cys23 and
+#   Trp41) -> start = Cys23 - @tcr_pre_cys (clipped at 0). Missing -> start 0, flag no_cys23.
+@tcr_pre_cys        22
+#   End anchor: last J-region motif [FW]G.G (Phe118-Gly119-X-Gly121) within the first 170
+#   residues -> end = F118 + @tcr_post_j (IMGT 128, end of the V domain). Missing -> end =
+#   start + @tcr_fallback_len, flag no_J.
+@tcr_post_j         10
+@tcr_fallback_len   120
+#   Chains shorter than @tcr_min_len after trimming are flagged short_tcr (fragments).
+@tcr_min_len        60
+#   CDRs for the pos_region channels come from the JSON per-residue IMGT numbering
+#   (Sequence.<chain>.Consensus.IMGT: CDR1 = 27-38, CDR2 = 56-65, CDR3 = 105-117). Where it
+#   is missing, they come from the anchors (flag cdr_from_anchors): CDR1 = Cys23+4 to
+#   Trp41-3, CDR2 = Trp41+15 to Trp41+25, CDR3 = after the last Cys before F118 up to F118.
+
+######## Canvas (load-time centering and padding) ########
+# Each trimmed map is placed on a @canvas_size x @canvas_size canvas so that the last
+# peptide residue sits at index @anchor on both axes: the pMHC side (MHCa, MHCb, peptide)
+# fills rows/cols up to the anchor and the TCR side starts at anchor + 1, so the pMHC-TCR
+# interface block is always in the same place. With the rules above the full dataset has
+# pMHC side <= 204 and TCR side <= 247 residues, so 512 with the anchor at 255 (TCR starts
+# at the canvas center) fits everything. Padding uses @pad_value (as in the notebook).
+@canvas_size        512
+@anchor             255
+@pad_value          -1
+
+######## Sequence: BLOSUM62 (20 + 1) ########
+# Differenced encoding from TCR_Resnet_Full.ipynb (encodeDiff): for each BLOSUM62 column k,
+# M_k[i,j] = B[s_i,k]^2 - B[s_j,k]^2. Columns in order ARNDCQEGHILKMFPSTWYV; non-standard
+# residues use the X row.
+0   seq_blosum_diff_A   sequence   anti   BLOSUM62 column A, squared row value of i minus j
+1   seq_blosum_diff_R   sequence   anti   BLOSUM62 column R, squared row value of i minus j
+2   seq_blosum_diff_N   sequence   anti   BLOSUM62 column N, squared row value of i minus j
+3   seq_blosum_diff_D   sequence   anti   BLOSUM62 column D, squared row value of i minus j
+4   seq_blosum_diff_C   sequence   anti   BLOSUM62 column C, squared row value of i minus j
+5   seq_blosum_diff_Q   sequence   anti   BLOSUM62 column Q, squared row value of i minus j
+6   seq_blosum_diff_E   sequence   anti   BLOSUM62 column E, squared row value of i minus j
+7   seq_blosum_diff_G   sequence   anti   BLOSUM62 column G, squared row value of i minus j
+8   seq_blosum_diff_H   sequence   anti   BLOSUM62 column H, squared row value of i minus j
+9   seq_blosum_diff_I   sequence   anti   BLOSUM62 column I, squared row value of i minus j
+10  seq_blosum_diff_L   sequence   anti   BLOSUM62 column L, squared row value of i minus j
+11  seq_blosum_diff_K   sequence   anti   BLOSUM62 column K, squared row value of i minus j
+12  seq_blosum_diff_M   sequence   anti   BLOSUM62 column M, squared row value of i minus j
+13  seq_blosum_diff_F   sequence   anti   BLOSUM62 column F, squared row value of i minus j
+14  seq_blosum_diff_P   sequence   anti   BLOSUM62 column P, squared row value of i minus j
+15  seq_blosum_diff_S   sequence   anti   BLOSUM62 column S, squared row value of i minus j
+16  seq_blosum_diff_T   sequence   anti   BLOSUM62 column T, squared row value of i minus j
+17  seq_blosum_diff_W   sequence   anti   BLOSUM62 column W, squared row value of i minus j
+18  seq_blosum_diff_Y   sequence   anti   BLOSUM62 column Y, squared row value of i minus j
+19  seq_blosum_diff_V   sequence   anti   BLOSUM62 column V, squared row value of i minus j
+20  seq_blosum_score    sequence   sym    BLOSUM62 substitution score B[s_i, s_j] (symmetric companion to the diff channels)
+
+######## Position: chain / region / sequence position (11) ########
+# Chain encoding from the notebook (encodePosition): channel c is 1 if residue i or j is on
+# chain c, so same-chain pairs light up one channel and inter-chain pairs two.
+21  pos_chain_MHCa      position   sym    1 if i or j is on MHCa (chain A)
+22  pos_chain_MHCb      position   sym    1 if i or j is on MHCb (chain B; all 0 for class I)
+23  pos_chain_Peptide   position   sym    1 if i or j is on the peptide (chain C)
+24  pos_chain_TCRa      position   sym    1 if i or j is on TCRa (chain D)
+25  pos_chain_TCRb      position   sym    1 if i or j is on TCRb (chain E)
+26  pos_seqsep          position   sym    Same chain: min(|i-j|, 64) residues; different chains: 65
+# Region encoding from the JSON Region ranges ([start, end) offsets within each chain). Value is
+# the number of i, j (0-2) in the region. CDRs are not split by alpha/beta because the chain
+# channels already say which chain a residue is on; the MHC helices are split because for
+# class I both are on chain A.
+27  pos_region_MHCha    position   sym    Number of i, j in the MHC alpha-chain helix (MHCha)
+28  pos_region_MHChb    position   sym    Number of i, j in the MHC beta-chain / alpha2 helix (MHChb)
+29  pos_region_CDR1     position   sym    Number of i, j in CDR1a or CDR1b
+30  pos_region_CDR2     position   sym    Number of i, j in CDR2a or CDR2b
+31  pos_region_CDR3     position   sym    Number of i, j in CDR3a or CDR3b
+
+######## Structure: geometry and packing from Complex.pdb (9) ########
+32  str_ca_dist         structure  sym    CA-CA distance (A), same as Contact/contact.csv but in canonical chain order
+33  str_cb_dist         structure  sym    CB-CB distance (A); virtual CB built from N, CA, C for glycine
+34  str_sc_sc_contacts  structure  sym    Number of side-chain heavy-atom pairs within 4.5 A between i and j (side-chain occupancy)
+35  str_sc_bb_contacts  structure  asym   Number of side-chain heavy atoms of i within 4.5 A of backbone heavy atoms (N, CA, C, O) of j
+36  str_bb_bb_contacts  structure  sym    Number of backbone heavy-atom pairs within 4.5 A between i and j (includes the i, i+1 peptide bond)
+# Residue-type distances: per-pair versions of the polar/nonpolar/charged/aromatic distance
+# features in ExtractFeaturestoJSON.py (getDistanceFeatures), using the same residue classes.
+# Value is the side-chain centroid distance (A, heavy atoms) if the pair matches, else 0.
+# The diagonal is 0 (self pairs are excluded).
+37  str_polar_dist      structure  sym    Both residues polar (STNQ)
+38  str_nonpolar_dist   structure  sym    Both residues nonpolar (AVILMFYW)
+39  str_charged_dist    structure  sym    One positive (RHK) and one negative (DE) residue (salt-bridge pairs)
+40  str_aromatic_dist   structure  sym    Both residues aromatic (FYW)
+
+######## Physics: Rosetta ref2015 two-body energies (10) ########
+# Weighted per-residue-pair energies (REU) from the scored pose's energy graph, as in
+# calcWeightedEnergyGraph in ExtractFeaturestoJSON.py but split by score term. Pairs beyond
+# the term's interaction cutoff are 0. One-body terms (fa_intra_*, fa_dun, rama_prepro,
+# p_aa_pp, omega, pro_close, yhh_planarity, ref) are not pairwise and are left out.
+41  phys_fa_atr         physics    sym    Lennard-Jones attraction
+42  phys_fa_rep         physics    sym    Lennard-Jones repulsion (large positive values = clashes)
+43  phys_fa_sol         physics    sym    Lazaridis-Karplus solvation
+44  phys_lk_ball_wtd    physics    sym    Orientation-dependent (lk_ball) solvation
+45  phys_fa_elec        physics    sym    Coulombic electrostatics
+46  phys_hbond_sr_bb    physics    sym    Backbone-backbone H-bonds, short range (helices)
+47  phys_hbond_lr_bb    physics    sym    Backbone-backbone H-bonds, long range (sheets, inter-chain)
+48  phys_hbond_bb_sc    physics    sym    Backbone-side chain H-bonds
+49  phys_hbond_sc       physics    sym    Side chain-side chain H-bonds
+50  phys_dslf_fa13      physics    sym    Disulfide bonds
+
+######## Candidates (not built yet) ########
+# Orientation (trRosetta-style): omega dihedral CA-CB-CB-CA (sym), theta dihedral N-CA-CB-CB
+#   (asym), phi angle CA-CB-CB (asym); as sin/cos pairs = 6 channels
+# Per-residue features broadcast to rows/cols (2 channels each): relative SASA, buried SASA,
+#   secondary structure, pLDDT (predicted structures only - would leak crystal vs predicted)
+# Mixed residue-type distances from getDistanceFeatures: polar-nonpolar (p_np_distance) and
+#   aromatic-charged (aro_charge_distance), 1 channel each
+# Geometric H-bond count (calcHydrogenBonds) - mostly redundant with the Rosetta hbond terms
+# Occupancy from the PDB column - not used: 1.00 for all atoms after processing and always
+#   1.00 for predicted structures, so it would only encode crystal vs predicted
