@@ -1,6 +1,5 @@
 *.md
 dat/
-All_sequences*
 sequences*
 .claude
 .vscode
